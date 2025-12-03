@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard Alerte Feu</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Adapté aux petits écrans -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
+   <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #map { height: 400px; margin-bottom: 20px; }
+
+    .alert {
+        margin: 10px 0;
+        padding: 10px;
+        border: 1px solid #ccc;
+        background: #f9f9f9;
+    }
+
+    .alert img {
+        width: 200px;
+        height: 200px;
+        object-fit: cover;
+        display: block;
+        margin-top: 10px;
+        border-radius: 8px;
+        box-shadow: 0 0 4px rgba(0,0,0,0.2);
+    }
+
+    @media (max-width: 600px) {
+        .alert img {
+            width: 100%;
+            height: auto;
+        }
+        #map {
+            height: 300px;
+        }
+    }
+</style>
+</head>
+<body>
+<h1>Dashboard Alerte Incendie</h1>
+<h2>Total des feux détectés : <span id="counter">0</span></h2>
+<div id="map"></div>
+<h3>📈 Évolution des alertes</h3>
+<canvas id="alertChart" width="400" height="150"></canvas>
+<h3>🕘 Historique</h3>
+<div id="alerts"></div>
+
+<script>
+    // Initialiser la carte centrée sur Alger
+    const map = L.map('map').setView([36.75, 3.05], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    fetch('data.json')
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('counter').textContent = data.length;
+            const dayCounts = {};
+
+            data.forEach(alert => {
+                const lat = parseFloat(alert.lat);
+                const lon = parseFloat(alert.lon);
+                const day = alert.time.split(" ")[0];
+                dayCounts[day] = (dayCounts[day] || 0) + 1;
+
+                // Marker sur la carte
+                L.marker([lat, lon]).addTo(map).bindPopup(
+                 `<b>Feu détecté</b><br>${alert.time}<br>
+                  <img src="static/alerts/${alert.image}" style="width:200px; height:200px; object-fit:cover; border-radius:8px; box-shadow:0 0 4px rgba(0,0,0,0.2);" />`
+                  );
+
+                // Carte d'alerte dans l'historique
+                const alertDiv = document.createElement("div");
+                alertDiv.className = "alert";
+                alertDiv.innerHTML = `<strong>${alert.time}</strong><br>
+                    📍 Latitude: ${lat}, Longitude: ${lon}<br>
+                    <img src="static/alerts/${alert.image}"/>`;
+                document.getElementById("alerts").appendChild(alertDiv);
+            });
+
+            // Création du graphique
+            const labels = Object.keys(dayCounts);
+            const values = Object.values(dayCounts);
+
+            new Chart(document.getElementById('alertChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Alertes par jour',
+                        data: values,
+                        fill: true,
+                        borderColor: '#e74c3c',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { beginAtZero: true, precision: 0 }
+                    }
+                }
+            });
+        });
+</script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html> <!-- Déclaration du type de document HTML -->
+<html>
+<head>
+    <title>Dashboard Alerte Feu</title> <!-- Titre affiché dans l'onglet du navigateur -->
+    <meta charset="utf-8"> <!-- Encodage des caractères -->
+    <!-- Intégration de Chart.js pour afficher les graphiques -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Intégration de Leaflet.js pour la carte -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
+    <!-- Style CSS pour la mise en page -->
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #map { height: 400px; } /* Hauteur de la carte */
+        .alert { margin: 10px; padding: 10px; border: 1px solid #ccc; } /* Style des cartes d'alerte */
+        img { max-width: 200px; } /* Limite la taille des images */
+    </style>
+</head>
+<body>
+<!-- Titre de la page -->
+<h1>Dashboard Alerte Incendie</h1>
+<!-- Affichage du compteur total d'alertes -->
+<h2>Total des feux détectés : <span id="counter">0</span></h2>
+<!-- Conteneur pour la carte Leaflet -->
+<div id="map"></div>
+<!-- Titre du graphique -->
+<h3>📈 Évolution des alertes</h3>
+<!-- Canvas pour afficher le graphique avec Chart.js -->
+<canvas id="alertChart" width="400" height="150"></canvas>
+<!-- Titre de la section historique -->
+<h3>🕘 Historique</h3>
+<!-- Conteneur pour afficher les anciennes alertes -->
+<div id="alerts"></div>
+<!-- Script JavaScript principal -->
+<script>
+    // Initialisation de la carte avec des coordonnées centrées sur Alger
+    const map = L.map('map').setView([36.75, 3.05], 6);
+    // Chargement des tuiles OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+    // Chargement du fichier JSON contenant les alertes
+    fetch('data.json')
+        .then(res => res.json()) // Conversion de la réponse en JSON
+        .then(data => {
+            // Mise à jour du compteur total
+            document.getElementById('counter').textContent = data.length;
+            const dayCounts = {}; // Objet pour compter les alertes par jour
+            // Boucle sur chaque alerte
+            data.forEach(alert => {
+                const lat = parseFloat(alert.lat); // Latitude
+                const lon = parseFloat(alert.lon); // Longitude
+                const day = alert.time.split(" ")[0]; // Date sans l'heure
+                // Incrémentation du nombre d'alertes par jour
+                dayCounts[day] = (dayCounts[day] || 0) + 1;
+                // Ajout d'un marqueur sur la carte
+                L.marker([lat, lon]).addTo(map).bindPopup(
+                    <b> Feu détecté</b><br>${alert.time}<br><img src="static/alerts/${alert.image}" width="150"/>
+                );
+                // Création d'une carte HTML pour chaque alerte
+                const alertDiv = document.createElement("div");
+                alertDiv.className = "alert";
+                alertDiv.innerHTML = <strong>${alert.time}</strong><br>
+                    📍 Latitude: ${lat}, Longitude: ${lon}<br>
+                    <img src="static/alerts/${alert.image}"/>;
+                // Ajout au conteneur d'historique
+                document.getElementById("alerts").appendChild(alertDiv);
+            });
+            // Préparation des données pour le graphique
+            const labels = Object.keys(dayCounts); // Dates
+            const values = Object.values(dayCounts); // Nombre d'alertes
+
+            // Création du graphique avec Chart.js
+            new Chart(document.getElementById('alertChart').getContext('2d'), {
+                type: 'line', // Type de graphique
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Alertes par jour',
+                        data: values,
+                        fill: true,
+                        borderColor: '#e74c3c', // Couleur rouge
+                        tension: 0.4 // Courbe douce
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { beginAtZero: true, precision: 0 } // Axe Y commence à 0
+                    }
+                }
+            });
+        });
+</script>
+</body>
+</html>
+

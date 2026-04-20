@@ -1,6 +1,6 @@
-# 🔥 Drone Fire Detection System
+ Drone Fire Detection System
 
-## 📌 Description
+##  Description
 Conception et développement d’un drone intelligent dédié à la détection précoce des incendies, intégrant un modèle d’intelligence artificielle (YOLOv8), un système embarqué Raspberry Pi, la capture d’images, la géolocalisation GPS et la transmission en temps réel vers une interface de surveillance.
 ---
 
